@@ -5,10 +5,35 @@ from mido import MidiFile
 import threading
 from mcpi import block
 
-# 마인크래프트 연결
 mc = Minecraft.create()
 player_pos = mc.player.getTilePos()
 base_x, base_y, base_z = player_pos.x, player_pos.y, player_pos.z
+
+# 1. 피아노 건반 생성 함수 (시각적 피드백 포함)
+def create_piano_with_progress():
+    mc.postToChat("§a피아노 건반을 생성 중입니다...")
+    white_keys = [0, 2, 4, 5, 7, 9, 11]
+    total_keys = 3 * 12  # 3옥타브 × 12음계
+    created = 0
+    
+    for octave in range(3):
+        for i in range(12):
+            x = base_x + (octave * 12) + i
+            color = 0 if i in white_keys else 15
+            
+            # 건반 배치 + 파티클 효과
+            mc.setBlock(x, base_y, base_z, block.WOOL.id, color)
+            mc.postToChat(
+                f"/particle minecraft:endRod {x+0.5} {base_y+1} {base_z+0.5} 0 0 0 0.1 1"
+            )
+            time.sleep(0.05)  # 생성 간격
+            
+            # 진행률 표시
+            created += 1
+            if created % 5 == 0:
+                mc.postToChat(f"§b진행률: {created}/{total_keys}")
+
+    mc.postToChat("§a피아노 생성이 완료되었습니다! 연주를 시작합니다.")
 
 # 파티클 설정 (note_on/off 별 속도, 수명, 모션)
 particle_config = {
@@ -80,9 +105,10 @@ class MidiPlayer:
 
 # 4. 메인 실행
 if __name__ == "__main__":
-    create_piano_3_octave()  # 피아노 건반 생성
-    player = MidiPlayer("your_song.mid")  # MIDI 파일 경로 지정
+    create_piano_with_progress()  # 건반 먼저 생성
+    time.sleep(1)  # 1초 대기
     
-    # MIDI 재생 스레드 시작
+    # MIDI 재생 시작
+    player = MidiPlayer("your_song.mid")
     midi_thread = threading.Thread(target=player.start_playback)
     midi_thread.start()
